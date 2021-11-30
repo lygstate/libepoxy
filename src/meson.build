@@ -65,6 +65,9 @@ endif
 if build_egl
   epoxy_deps += [ elg_headers_dep, ]
 endif
+if egl_dep.found()
+  epoxy_deps += [ egl_dep ]
+endif
 
 libepoxy = library(
   'epoxy',
