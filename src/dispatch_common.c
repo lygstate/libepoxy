@@ -274,7 +274,7 @@ static struct api api = {
 
 static bool library_initialized;
 
-static bool epoxy_current_context_is_glx(void);
+static bool epoxy_current_context_is_gl(void);
 
 #if PLATFORM_HAS_EGL
 static EGLenum
@@ -365,7 +365,7 @@ epoxy_is_desktop_gl(void)
      * OpenGL ES, we must also check the context type through EGL (we
      * can do that as PowerVR is only usable through EGL).
      */
-    if (!epoxy_current_context_is_glx()) {
+    if (!epoxy_current_context_is_gl()) {
         switch (epoxy_egl_get_current_gl_context_api()) {
         case EGL_OPENGL_API:     return true;
         case EGL_OPENGL_ES_API:  return false;
@@ -569,24 +569,13 @@ epoxy_conservative_glx_dlsym(const char *name, bool exit_if_fails)
 }
 
 /**
- * Tests whether the currently bound context is EGL or GLX, trying to
+ * Tests whether the currently bound context is EGL or GLX|WGL, trying to
  * avoid loading libraries unless necessary.
  */
 static bool
-epoxy_current_context_is_glx(void)
+epoxy_current_context_is_gl(void)
 {
-#if !PLATFORM_HAS_GLX
-    return false;
-#else
     void *sym;
-
-    sym = epoxy_conservative_glx_dlsym("glXGetCurrentContext", false);
-    if (sym) {
-        if (glXGetCurrentContext())
-            return true;
-    } else {
-        (void)dlerror();
-    }
 
 #if PLATFORM_HAS_EGL
     sym = epoxy_conservative_egl_dlsym("eglGetCurrentContext", false);
@@ -594,12 +583,30 @@ epoxy_current_context_is_glx(void)
         if (epoxy_egl_get_current_gl_context_api() != EGL_NONE)
             return false;
     } else {
+#if !defined(_WIN32)
         (void)dlerror();
+#endif
     }
 #endif /* PLATFORM_HAS_EGL */
 
-    return false;
+#if PLATFORM_HAS_GLX
+    sym = epoxy_conservative_glx_dlsym("glXGetCurrentContext", false);
+    if (sym) {
+        if (glXGetCurrentContext())
+            return true;
+    } else {
+        (void)dlerror();
+    }
 #endif /* PLATFORM_HAS_GLX */
+
+#if PLATFORM_HAS_WGL
+    if (wglGetCurrentContext()) {
+        return true;
+    }
+#endif /* PLATFORM_HAS_WGL */
+
+    (void)sym;
+    return false;
 }
 
 /**
@@ -705,7 +712,7 @@ epoxy_gl_dlsym(const char *name)
 void *
 epoxy_gles1_dlsym(const char *name)
 {
-    if (epoxy_current_context_is_glx()) {
+    if (epoxy_current_context_is_gl()) {
         return epoxy_get_proc_address(name);
     } else {
         get_dlopen_handle(&api.gles1_handle, GLES1_LIB, true, true);
@@ -716,7 +723,7 @@ epoxy_gles1_dlsym(const char *name)
 void *
 epoxy_gles2_dlsym(const char *name)
 {
-    if (epoxy_current_context_is_glx()) {
+    if (epoxy_current_context_is_gl()) {
         return epoxy_get_proc_address(name);
     } else {
         get_dlopen_handle(&api.gles2_handle, GLES2_LIB, true, true);
@@ -737,7 +744,7 @@ epoxy_gles2_dlsym(const char *name)
 void *
 epoxy_gles3_dlsym(const char *name)
 {
-    if (epoxy_current_context_is_glx()) {
+    if (epoxy_current_context_is_gl()) {
         return epoxy_get_proc_address(name);
     } else {
         if (get_dlopen_handle(&api.gles2_handle, GLES2_LIB, false, true)) {
@@ -850,7 +857,7 @@ epoxy_get_proc_address(const char *name)
 #if PLATFORM_HAS_EGL
     GLenum egl_api = EGL_NONE;
 
-    if (!epoxy_current_context_is_glx())
+    if (!epoxy_current_context_is_gl())
       egl_api = epoxy_egl_get_current_gl_context_api();
 
     switch (egl_api) {
@@ -867,7 +874,7 @@ epoxy_get_proc_address(const char *name)
 #elif defined(__APPLE__)
     return epoxy_gl_dlsym(name);
 #elif PLATFORM_HAS_GLX
-    if (epoxy_current_context_is_glx())
+    if (epoxy_current_context_is_gl())
         return glXGetProcAddressARB((const GLubyte *)name);
     assert(0 && "Couldn't find current GLX or EGL context.\n");
 #endif
