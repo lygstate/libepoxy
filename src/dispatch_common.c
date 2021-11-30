@@ -114,7 +114,7 @@
  *      3.6. To perform the dynamic query, libGL also must export an entry
  *           point called
  *
- *           void (*glXGetProcAddressARB(const GLubyte *))(); 
+ *           void (*glXGetProcAddressARB(const GLubyte *))();
  *
  *      The full specification of this function is available separately. It
  *      takes the string name of a GL or GLX entry point and returns a pointer
