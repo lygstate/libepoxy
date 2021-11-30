@@ -43,7 +43,7 @@ endif
 
 enable_egl = get_option('egl')
 if enable_egl == 'auto'
-  build_egl = not ['windows', 'darwin'].contains(host_system)
+  build_egl = not ['darwin'].contains(host_system)
 else
   build_egl = enable_egl == 'yes'
 endif
