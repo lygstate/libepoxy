@@ -158,6 +158,8 @@
  *        glXQueryVersion queries."
  */
 
+#define _GNU_SOURCE
+
 #include <assert.h>
 #include <stdlib.h>
 #ifdef _WIN32
@@ -187,7 +189,7 @@
 #define EGL_LIB "libEGL.dll"
 #define GLES1_LIB "libGLES_CM.dll"
 #define GLES2_LIB "libGLESv2.dll"
-#define OPENGL_LIB "OPENGL32"
+#define OPENGL_LIB "OPENGL32.dll"
 #else
 #define GLVND_GLX_LIB "libGLX.so.1"
 #define GLX_LIB "libGL.so.1"
@@ -249,6 +251,8 @@ struct api {
     /* dlopen() return value for libGLESv2.so.2 */
     void *gles2_handle;
 
+    char *epoxy_module_path;
+
     /*
      * This value gets incremented when any thread is in
      * glBegin()/glEnd() called through epoxy.
@@ -283,9 +287,81 @@ epoxy_egl_get_current_gl_context_api(void);
 
 CONSTRUCT (library_init)
 
+#if defined(_WIN32)
+static char *wchar_to_utf8(
+    const wchar_t *src,
+    size_t src_length, /* = 0 */
+    size_t *out_length /* = NULL */
+)
+{
+    int length;
+    char *output_buffer;
+    if (!src)
+    {
+        return NULL;
+    }
+
+    if (src_length == 0)
+    {
+        src_length = wcslen(src);
+    }
+    length = WideCharToMultiByte(CP_UTF8, 0, src, src_length,
+                                     0, 0, NULL, NULL);
+    output_buffer = (char *)malloc((length + 1) * sizeof(char));
+    if (output_buffer)
+    {
+        WideCharToMultiByte(CP_UTF8, 0, src, src_length,
+                            output_buffer, length, NULL, NULL);
+        output_buffer[length] = '\0';
+    }
+    if (out_length)
+    {
+        *out_length = length;
+    }
+    return output_buffer;
+}
+#endif
+
+static void getModuleFullpathForFunction(const void *function_pointer, char **utf8_str_ptr)
+{
+#if defined(_WIN32)
+    HMODULE hm = NULL;
+    DWORD moduleFlags = GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS |
+                        GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT;
+    if (GetModuleHandleExW(moduleFlags, (LPCWSTR)function_pointer, &hm) == 0)
+    {
+        *utf8_str_ptr = strdup("");
+    }
+    else
+    {
+        DWORD size = MAX_PATH + 1;
+        wchar_t *space = malloc(sizeof(wchar_t) * size);
+        DWORD v;
+        for (;;)
+        {
+            v = GetModuleFileNameW(hm, space, size);
+            if (v >= size)
+            {
+                size += MAX_PATH;
+                space = realloc(space, sizeof(wchar_t) * size);
+                continue;
+            }
+            break;
+        }
+        *utf8_str_ptr = wchar_to_utf8(space, v, NULL);
+        free(space);
+    }
+#else
+    Dl_info info;
+    dladdr(function_pointer, &info);
+    *utf8_str_ptr = strdup(info.dli_fname);
+#endif
+}
+
 static void
 library_init(void)
 {
+    getModuleFullpathForFunction(getModuleFullpathForFunction, &api.epoxy_module_path);
     library_initialized = true;
 }
 
@@ -513,6 +589,46 @@ epoxy_extension_in_string(const char *extension_list, const char *ext)
             return true;
         ptr += len;
     }
+}
+
+char *epoxy_module_path(void)
+{
+    return api.epoxy_module_path;
+}
+
+void *epoxy_dlopen_handle(const char *lib_name, bool load)
+{
+    void *handle = NULL;
+    if (!get_dlopen_handle(&handle, lib_name, false, load))
+    {
+        return NULL;
+    }
+    return handle;
+}
+
+void epoxy_set_gl_handle(void *handle)
+{
+    api.gl_handle = handle;
+}
+
+void epoxy_set_glx_handle(void *handle)
+{
+    api.glx_handle = handle;
+}
+
+void epoxy_set_egl_handle(void *handle)
+{
+    api.egl_handle = handle;
+}
+
+void epoxy_set_gles1_handle(void *handle)
+{
+    api.gles1_handle = handle;
+}
+
+void epoxy_set_gles2_handle(void *handle)
+{
+    api.gles2_handle = handle;
 }
 
 static bool
