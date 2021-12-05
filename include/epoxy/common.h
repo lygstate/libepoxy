@@ -58,6 +58,20 @@ EPOXY_BEGIN_DECLS
 EPOXY_PUBLIC bool epoxy_extension_in_string(const char *extension_list,
                                             const char *ext);
 
+EPOXY_PUBLIC char *epoxy_module_path(void);
+
+EPOXY_PUBLIC void *epoxy_dlopen_handle(const char *lib_name, bool load);
+
+EPOXY_PUBLIC void epoxy_set_gl_handle(void *handle);
+
+EPOXY_PUBLIC void epoxy_set_glx_handle(void *handle);
+
+EPOXY_PUBLIC void epoxy_set_egl_handle(void *handle);
+
+EPOXY_PUBLIC void epoxy_set_gles1_handle(void *handle);
+
+EPOXY_PUBLIC void epoxy_set_gles2_handle(void *handle);
+
 EPOXY_END_DECLS
 
 #endif /* EPOXY_COMMON_H */
