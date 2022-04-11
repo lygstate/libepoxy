@@ -948,7 +948,7 @@ epoxy_get_bootstrap_proc_address(const char *name)
         int version = 0;
         switch (epoxy_egl_get_current_gl_context_api()) {
         case EGL_OPENGL_API:
-            return epoxy_gl_dlsym(name);
+            return eglGetProcAddress(name);
         case EGL_OPENGL_ES_API:
             if (eglQueryContext(eglGetCurrentDisplay(),
                                 eglGetCurrentContext(),
