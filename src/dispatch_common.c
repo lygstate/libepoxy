@@ -940,7 +940,6 @@ epoxy_get_bootstrap_proc_address(const char *name)
      * non-X11 ES2 context from loading a bunch of X11 junk).
      */
 #if PLATFORM_HAS_EGL
-    get_dlopen_handle(&api.egl_handle, EGL_LIB, false, true);
     if (api.egl_handle) {
         int version = 0;
         switch (epoxy_egl_get_current_gl_context_api()) {
