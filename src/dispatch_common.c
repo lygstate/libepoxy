@@ -811,14 +811,6 @@ epoxy_egl_get_current_gl_context_api(void)
 void *
 epoxy_get_bootstrap_proc_address(const char *name)
 {
-    /* If we already have a library that links to libglapi loaded,
-     * use that.
-     */
-#if PLATFORM_HAS_GLX
-    if (api.glx_handle && glXGetCurrentContext())
-        return epoxy_gl_dlsym(name);
-#endif
-
     /* If epoxy hasn't loaded any API-specific library yet, try to
      * figure out what API the context is using and use that library,
      * since future calls will also use that API (this prevents a
@@ -848,6 +840,14 @@ epoxy_get_bootstrap_proc_address(const char *name)
         }
     }
 #endif /* PLATFORM_HAS_EGL */
+
+    /* If we already have a library that links to libglapi loaded,
+     * use that.
+     */
+#if PLATFORM_HAS_GLX
+    if (api.glx_handle && glXGetCurrentContext())
+        return epoxy_gl_dlsym(name);
+#endif
 
     /* Fall back to GLX */
     return epoxy_gl_dlsym(name);
