@@ -881,17 +881,18 @@ epoxy_gles3_dlsym(const char *name)
 void *
 epoxy_get_core_proc_address(const char *name, int core_version)
 {
-#ifdef _WIN32
-    int core_symbol_support = 11;
-#elif defined(__ANDROID__)
     /**
      * All symbols must be resolved through eglGetProcAddress
-     * on Android
+     * on Android or EGL context
      */
     int core_symbol_support = 0;
+    if (epoxy_current_context_is_gl()) {
+#ifdef _WIN32
+        core_symbol_support = 11;
 #else
-    int core_symbol_support = 12;
+        core_symbol_support = 12;
 #endif
+    }
 
     if (core_version <= core_symbol_support) {
         return epoxy_gl_dlsym(name);
