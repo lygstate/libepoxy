@@ -760,6 +760,11 @@ epoxy_get_core_proc_address(const char *name, int core_version)
 {
 #ifdef _WIN32
     int core_symbol_support = 11;
+#if PLATFORM_HAS_EGL
+    if (epoxy_egl_get_current_gl_context_api() != EGL_NONE) {
+        core_symbol_support = 0;
+    }
+#endif
 #elif defined(__ANDROID__)
     /**
      * All symbols must be resolved through eglGetProcAddress
@@ -825,7 +830,11 @@ epoxy_get_bootstrap_proc_address(const char *name)
         int version = 0;
         switch (epoxy_egl_get_current_gl_context_api()) {
         case EGL_OPENGL_API:
+#if defined(_WIN32)
+            return epoxy_gles2_dlsym(name);
+#else
             return epoxy_gl_dlsym(name);
+#endif
         case EGL_OPENGL_ES_API:
             if (eglQueryContext(eglGetCurrentDisplay(),
                                 eglGetCurrentContext(),
