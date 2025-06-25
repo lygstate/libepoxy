@@ -160,11 +160,9 @@ DllMain(HINSTANCE dll, DWORD reason, LPVOID reserved)
 WRAPPER_VISIBILITY (BOOL)
 WRAPPER(epoxy_wglMakeCurrent)(HDC hdc, HGLRC hglrc)
 {
-    BOOL ret = epoxy_wglMakeCurrent_unwrapped(hdc, hglrc);
-
     epoxy_handle_external_wglMakeCurrent();
 
-    return ret;
+    return epoxy_wglMakeCurrent_unwrapped(hdc, hglrc);
 }
 
 
@@ -173,12 +171,9 @@ WRAPPER(epoxy_wglMakeContextCurrentARB)(HDC hDrawDC,
                                         HDC hReadDC,
                                         HGLRC hglrc)
 {
-    BOOL ret = epoxy_wglMakeContextCurrentARB_unwrapped(hDrawDC, hReadDC,
-                                                        hglrc);
-
     epoxy_handle_external_wglMakeCurrent();
 
-    return ret;
+    return epoxy_wglMakeContextCurrentARB_unwrapped(hDrawDC, hReadDC, hglrc);
 }
 
 
@@ -187,23 +182,18 @@ WRAPPER(epoxy_wglMakeContextCurrentEXT)(HDC hDrawDC,
                                         HDC hReadDC,
                                         HGLRC hglrc)
 {
-    BOOL ret = epoxy_wglMakeContextCurrentEXT_unwrapped(hDrawDC, hReadDC,
-                                                        hglrc);
-
     epoxy_handle_external_wglMakeCurrent();
 
-    return ret;
+    return epoxy_wglMakeContextCurrentEXT_unwrapped(hDrawDC, hReadDC, hglrc);
 }
 
 
 WRAPPER_VISIBILITY (BOOL)
 WRAPPER(epoxy_wglMakeAssociatedContextCurrentAMD)(HGLRC hglrc)
 {
-    BOOL ret = epoxy_wglMakeAssociatedContextCurrentAMD_unwrapped(hglrc);
-
     epoxy_handle_external_wglMakeCurrent();
 
-    return ret;
+    return epoxy_wglMakeAssociatedContextCurrentAMD_unwrapped(hglrc);
 }
 
 PFNWGLMAKECURRENTPROC epoxy_wglMakeCurrent = epoxy_wglMakeCurrent_wrapped;
