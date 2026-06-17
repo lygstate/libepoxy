@@ -119,6 +119,9 @@ dlopen(const char *filename, int flag)
     wrap->handle = ret;
 
     /* We use wrapped_libs as our handles to libraries. */
+    if (!ret)
+        return ret;
+
     return wrap;
 }
 
