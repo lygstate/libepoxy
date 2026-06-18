@@ -27,6 +27,11 @@
 
 #include "dispatch_common.h"
 
+#if USING_DISPATCH_TABLE
+static bool first_context_current = false;
+static bool already_switched_to_dispatch_table = false;
+#endif
+
 int
 epoxy_conservative_egl_version(void)
 {
@@ -120,3 +125,40 @@ epoxy_has_egl(void)
     return false;
 #endif /* PLATFORM_HAS_EGL */
 }
+
+void
+epoxy_handle_external_eglMakeCurrent(void)
+{
+#if USING_DISPATCH_TABLE
+    if (!first_context_current) {
+        first_context_current = true;
+    } else {
+        if (!already_switched_to_dispatch_table) {
+            already_switched_to_dispatch_table = true;
+            gl_switch_to_dispatch_table();
+            egl_switch_to_dispatch_table();
+        }
+
+        gl_init_dispatch_table();
+        egl_init_dispatch_table();
+    }
+#endif
+}
+
+#if USING_DISPATCH_TABLE
+WRAPPER_VISIBILITY (EGLBoolean)
+WRAPPER(epoxy_eglMakeCurrent)(EGLDisplay dpy,
+                              EGLSurface draw,
+                              EGLSurface read,
+                              EGLContext ctx)
+{
+    EGLBoolean ret = epoxy_eglMakeCurrent_unwrapped(dpy, draw, read, ctx);
+
+    if (ret == EGL_TRUE)
+        epoxy_handle_external_eglMakeCurrent();
+
+    return ret;
+}
+
+PFNEGLMAKECURRENTPROC epoxy_eglMakeCurrent = epoxy_eglMakeCurrent_wrapped;
+#endif

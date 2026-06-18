@@ -48,6 +48,7 @@ EPOXY_BEGIN_DECLS
 EPOXY_PUBLIC bool epoxy_has_egl_extension(EGLDisplay dpy, const char *extension);
 EPOXY_PUBLIC int epoxy_egl_version(EGLDisplay dpy);
 EPOXY_PUBLIC bool epoxy_has_egl(void);
+EPOXY_PUBLIC void epoxy_handle_external_eglMakeCurrent(void);
 
 EPOXY_END_DECLS
 

@@ -68,6 +68,7 @@ class GLFunction(object):
             'glBegin',
             'glEnd',
             'wglMakeCurrent',
+            'eglMakeCurrent',
             'wglMakeContextCurrentEXT',
             'wglMakeContextCurrentARB',
             'wglMakeAssociatedContextCurrentAMD',

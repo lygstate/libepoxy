@@ -109,6 +109,11 @@ DllMain(HINSTANCE dll, DWORD reason, LPVOID reserved)
         wgl_tls_index = TlsAlloc();
         if (wgl_tls_index == TLS_OUT_OF_INDEXES)
             return FALSE;
+#if PLATFORM_HAS_EGL
+        egl_tls_index = TlsAlloc();
+        if (egl_tls_index == TLS_OUT_OF_INDEXES)
+            return FALSE;
+#endif
 
         first_context_current = false;
 
@@ -120,6 +125,10 @@ DllMain(HINSTANCE dll, DWORD reason, LPVOID reserved)
 
         data = LocalAlloc(LPTR, wgl_tls_size);
         TlsSetValue(wgl_tls_index, data);
+#if PLATFORM_HAS_EGL
+        data = LocalAlloc(LPTR, egl_tls_size);
+        TlsSetValue(egl_tls_index, data);
+#endif
 
         break;
 
@@ -130,10 +139,17 @@ DllMain(HINSTANCE dll, DWORD reason, LPVOID reserved)
 
         data = TlsGetValue(wgl_tls_index);
         LocalFree(data);
+#if PLATFORM_HAS_EGL
+        data = TlsGetValue(egl_tls_index);
+        LocalFree(data);
+#endif
 
         if (reason == DLL_PROCESS_DETACH) {
             TlsFree(gl_tls_index);
             TlsFree(wgl_tls_index);
+#if PLATFORM_HAS_EGL
+            TlsFree(egl_tls_index);
+#endif
         }
         break;
     }

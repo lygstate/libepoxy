@@ -190,10 +190,25 @@ extern epoxy_resolver_failure_handler_t epoxy_resolver_failure_handler;
 #if USING_DISPATCH_TABLE
 void gl_init_dispatch_table(void);
 void gl_switch_to_dispatch_table(void);
+#if PLATFORM_HAS_EGL
+void egl_init_dispatch_table(void);
+void egl_switch_to_dispatch_table(void);
+#endif
 void wgl_init_dispatch_table(void);
 void wgl_switch_to_dispatch_table(void);
 extern uint32_t gl_tls_index, gl_tls_size;
+#if PLATFORM_HAS_EGL
+extern uint32_t egl_tls_index, egl_tls_size;
+#endif
 extern uint32_t wgl_tls_index, wgl_tls_size;
+
+#if PLATFORM_HAS_EGL
+#define eglMakeCurrent_unwrapped epoxy_eglMakeCurrent_unwrapped
+extern EGLBoolean UNWRAPPED_PROTO(eglMakeCurrent_unwrapped)(EGLDisplay dpy,
+                                                               EGLSurface draw,
+                                                               EGLSurface read,
+                                                               EGLContext ctx);
+#endif
 
 #define wglMakeCurrent_unwrapped epoxy_wglMakeCurrent_unwrapped
 #define wglMakeContextCurrentARB_unwrapped epoxy_wglMakeContextCurrentARB_unwrapped

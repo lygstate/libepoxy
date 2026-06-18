@@ -121,6 +121,10 @@ returns values depend on the context's device and pixel format.  If
 change the device or pixel format), then epoxy needs to be notified of
 the change using the `epoxy_handle_external_wglMakeCurrent()` function.
 
+The same applies to EGL on win32.  If `eglMakeCurrent()` is called from
+outside of epoxy, then epoxy needs to be notified of the change using the
+`epoxy_handle_external_eglMakeCurrent()` function.
+
 The win32 `wglMakeCurrent()` variants are slower than they should be,
 because they should be caching the resolved dispatch tables instead of
 resetting an entire thread-local dispatch table every time.
