@@ -21,7 +21,6 @@
  * IN THE SOFTWARE.
  */
 
-#include <assert.h>
 #include <string.h>
 #include <stdio.h>
 
@@ -32,15 +31,65 @@ static bool first_context_current = false;
 static bool already_switched_to_dispatch_table = false;
 #endif
 
+#if PLATFORM_HAS_EGL
+/* Fallback when EGL is loaded but client EGL_VERSION is unavailable. */
+#define EPOXY_EGL_MAX_CORE_VERSION 15
+
+static int
+epoxy_parse_egl_version_string(const char *version_string)
+{
+    int major, minor;
+    int ret;
+
+    if (!version_string)
+        return 0;
+
+    ret = sscanf(version_string, "%d.%d", &major, &minor);
+    if (ret != 2)
+        return 0;
+
+    return major * 10 + minor;
+}
+
+static int
+epoxy_egl_version_without_display(void)
+{
+    PFNEGLQUERYSTRINGPROC query_string;
+    int version;
+
+    query_string = (PFNEGLQUERYSTRINGPROC)
+        epoxy_conservative_egl_dlsym("eglQueryString", false);
+    if (!query_string)
+        return 0;
+
+    version = epoxy_parse_egl_version_string(
+        query_string(EGL_NO_DISPLAY, EGL_VERSION));
+    if (version)
+        return version;
+
+    return EPOXY_EGL_MAX_CORE_VERSION;
+}
+#endif /* PLATFORM_HAS_EGL */
+
 int
 epoxy_conservative_egl_version(void)
 {
-    EGLDisplay dpy = eglGetCurrentDisplay();
+#if PLATFORM_HAS_EGL
+    EGLDisplay dpy = NULL;
+    PFNEGLGETCURRENTDISPLAYPROC get_current_display =
+        (PFNEGLGETCURRENTDISPLAYPROC)
+        epoxy_conservative_egl_dlsym("eglGetCurrentDisplay", false);
+
+    if (get_current_display)
+        dpy = get_current_display();
 
     if (!dpy)
-        return 14;
+        return epoxy_egl_version_without_display();
 
     return epoxy_egl_version(dpy);
+#else
+    return 0;
+#endif
 }
 
 /**
@@ -65,17 +114,7 @@ epoxy_conservative_egl_version(void)
 int
 epoxy_egl_version(EGLDisplay dpy)
 {
-    int major, minor;
-    const char *version_string;
-    int ret;
-
-    version_string = eglQueryString(dpy, EGL_VERSION);
-    if (!version_string)
-        return 0;
-
-    ret = sscanf(version_string, "%d.%d", &major, &minor);
-    assert(ret == 2);
-    return major * 10 + minor;
+    return epoxy_parse_egl_version_string(eglQueryString(dpy, EGL_VERSION));
 }
 
 bool
