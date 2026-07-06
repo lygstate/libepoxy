@@ -32,13 +32,45 @@ static bool first_context_current = false;
 static bool already_switched_to_dispatch_table = false;
 #endif
 
+/* Fallback when EGL is loaded but client EGL_VERSION is unavailable. */
+#define EPOXY_EGL_MAX_CORE_VERSION 15
+
+static const char *
+epoxy_eglQueryString_conservative(EGLDisplay dpy, EGLint name)
+{
+    PFNEGLQUERYSTRINGPROC query_string =
+        (PFNEGLQUERYSTRINGPROC)
+        epoxy_conservative_egl_dlsym("eglQueryString", false);
+
+    if (!query_string)
+        return NULL;
+
+    return query_string(dpy, name);
+}
+
+static PFNEGLGETCURRENTDISPLAYPROC
+epoxy_eglGetCurrentDisplay_conservative_proc(void)
+{
+    return (PFNEGLGETCURRENTDISPLAYPROC)
+        epoxy_conservative_egl_dlsym("eglGetCurrentDisplay", false);
+}
+
+static EGLDisplay
+epoxy_eglGetCurrentDisplay_conservative(void)
+{
+    PFNEGLGETCURRENTDISPLAYPROC get_current_display =
+        epoxy_eglGetCurrentDisplay_conservative_proc();
+
+    if (!get_current_display)
+        return NULL;
+
+    return get_current_display();
+}
+
 int
 epoxy_conservative_egl_version(void)
 {
-    EGLDisplay dpy = eglGetCurrentDisplay();
-
-    if (!dpy)
-        return 14;
+    EGLDisplay dpy = epoxy_eglGetCurrentDisplay_conservative();
 
     return epoxy_egl_version(dpy);
 }
@@ -69,9 +101,9 @@ epoxy_egl_version(EGLDisplay dpy)
     const char *version_string;
     int ret;
 
-    version_string = eglQueryString(dpy, EGL_VERSION);
+    version_string = epoxy_eglQueryString_conservative(dpy, EGL_VERSION);
     if (!version_string)
-        return 0;
+        return EPOXY_EGL_MAX_CORE_VERSION;
 
     ret = sscanf(version_string, "%d.%d", &major, &minor);
     assert(ret == 2);
@@ -81,7 +113,8 @@ epoxy_egl_version(EGLDisplay dpy)
 bool
 epoxy_conservative_has_egl_extension(const char *ext)
 {
-    return epoxy_has_egl_extension(eglGetCurrentDisplay(), ext);
+    return epoxy_has_egl_extension(
+        epoxy_eglGetCurrentDisplay_conservative(), ext);
 }
 
 /**
@@ -98,7 +131,11 @@ epoxy_conservative_has_egl_extension(const char *ext)
 bool
 epoxy_has_egl_extension(EGLDisplay dpy, const char *ext)
 {
-    return epoxy_extension_in_string(eglQueryString(dpy, EGL_EXTENSIONS), ext) || epoxy_extension_in_string(eglQueryString(NULL, EGL_EXTENSIONS), ext);
+    if (epoxy_extension_in_string(epoxy_eglQueryString_conservative(dpy, EGL_EXTENSIONS), ext))
+        return true;
+    if (epoxy_extension_in_string(epoxy_eglQueryString_conservative(EGL_NO_DISPLAY, EGL_EXTENSIONS), ext))
+        return true;
+    return false;
 }
 
 /**
@@ -115,10 +152,7 @@ epoxy_has_egl(void)
     return false;
 #else
     if (epoxy_load_egl(false, true)) {
-        EGLDisplay* (* pf_eglGetCurrentDisplay) (void);
-
-        pf_eglGetCurrentDisplay = epoxy_conservative_egl_dlsym("eglGetCurrentDisplay", false);
-        if (pf_eglGetCurrentDisplay)
+        if (epoxy_eglGetCurrentDisplay_conservative_proc())
             return true;
     }
 

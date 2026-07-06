@@ -366,10 +366,7 @@ class Generator(object):
                     loader = 'epoxy_glx_dlsym({0})'
             elif api == 'egl':
                 human_name = 'EGL {0}'.format(version)
-                if version > 10:
-                    condition = 'epoxy_conservative_egl_version() >= {0}'.format(version)
-                else:
-                    condition = 'true'
+                condition = 'epoxy_conservative_egl_version() >= {0}'.format(version)
                 # All EGL core entrypoints must be dlsym()ed out --
                 # eglGetProcAdddress() will return NULL.
                 loader = 'epoxy_egl_dlsym({0})'

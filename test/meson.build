@@ -80,6 +80,15 @@ if build_egl and build_x11_tests
   endforeach
 endif
 
+if build_egl
+  test('egl_client_extension_nodisplay',
+       executable('egl_client_extension_nodisplay',
+                  'egl_client_extension_nodisplay.c',
+                  c_args: test_cflags,
+                  dependencies: libepoxy_dep,
+                  include_directories: libepoxy_inc))
+endif
+
 if build_glx and build_x11_tests
   glx_common_sources = [ 'glx_common.h', 'glx_common.c', ]
   glx_common_lib = static_library('glx_common',
